@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct HomeView: View {
+    @State private var showAllTransactions = false
+
     struct Transaction: Identifiable {
         enum Category: String {
             case shopping = "Покупки"
@@ -55,6 +57,9 @@ struct HomeView: View {
             }
             .navigationTitle("Главная")
         }
+        .sheet(isPresented: $showAllTransactions) {
+            AllCompletedOperationsView(transactions: transactions.filter { $0.status == .done })
+        }
     }
 
     private var balanceCard: some View {
@@ -101,8 +106,10 @@ struct HomeView: View {
                 Text("Последние операции")
                     .font(.headline)
                 Spacer()
-                Button("Показать все") {}
-                    .font(.subheadline)
+                Button("Показать все") {
+                    showAllTransactions = true
+                }
+                .font(.subheadline)
             }
 
             VStack(spacing: 8) {
@@ -171,6 +178,111 @@ struct HomeView: View {
     }
 
     private func statusChip(_ status: Transaction.Status) -> some View {
+        let text: String = status.rawValue
+        let tint: Color = (status == .done) ? .green.opacity(0.15) : .orange.opacity(0.15)
+        let fg: Color = (status == .done) ? .green : .orange
+        return Text(text)
+            .font(.caption2)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(tint, in: Capsule())
+            .foregroundStyle(fg)
+    }
+
+    private func formattedAmount(_ amount: Decimal, isDebit: Bool) -> String {
+        let sign = isDebit ? "-" : "+"
+        let ns = amount as NSDecimalNumber
+        let formatted = currencyFormatter.string(from: ns) ?? "₸0"
+        return sign + formatted
+    }
+}
+
+private struct AllCompletedOperationsView: View {
+    let transactions: [HomeView.Transaction]
+
+    private var currencyFormatter: NumberFormatter {
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencySymbol = "₸"
+        f.maximumFractionDigits = 0
+        return f
+    }
+
+    private var dateFormatter: DateFormatter {
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        df.timeStyle = .none
+        df.locale = Locale(identifier: "ru_KZ")
+        return df
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 8) {
+                    ForEach(transactions) { tx in
+                        transactionRow(tx)
+                        if tx.id != transactions.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Все выполненные операции")
+        }
+    }
+
+    @ViewBuilder
+    private func transactionRow(_ tx: HomeView.Transaction) -> some View {
+        HStack(spacing: 12) {
+            categoryIcon(tx.category)
+                .frame(width: 40, height: 40)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text(tx.title).font(.subheadline).fontWeight(.semibold)
+                    Spacer()
+                    Text(formattedAmount(tx.amount, isDebit: tx.isDebit))
+                        .font(.subheadline)
+                        .foregroundStyle(tx.isDebit ? AnyShapeStyle(.primary) : AnyShapeStyle(Color.green))
+                }
+                HStack(spacing: 8) {
+                    Text(tx.category.rawValue)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("•")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Text(dateFormatter.string(from: tx.date))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    statusChip(tx.status)
+                }
+            }
+        }
+        .contentShape(Rectangle())
+    }
+
+    private func categoryIcon(_ category: HomeView.Transaction.Category) -> some View {
+        let name: String
+        let color: Color
+        switch category {
+        case .shopping: name = "bag.fill"; color = .blue
+        case .transfer: name = "arrow.left.arrow.right"; color = .orange
+        case .mobile: name = "antenna.radiowaves.left.and.right"; color = .purple
+        case .utilities: name = "bolt.fill"; color = .teal
+        case .cashout: name = "banknote.fill"; color = .green
+        }
+        return Image(systemName: name)
+            .foregroundStyle(color)
+            .font(.system(size: 18, weight: .semibold))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func statusChip(_ status: HomeView.Transaction.Status) -> some View {
         let text: String = status.rawValue
         let tint: Color = (status == .done) ? .green.opacity(0.15) : .orange.opacity(0.15)
         let fg: Color = (status == .done) ? .green : .orange
