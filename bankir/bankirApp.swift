@@ -12,7 +12,9 @@ import SwiftData
 struct bankirApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Category.self,
+            Transaction.self,
+            UserProfile.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,8 +27,9 @@ struct bankirApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TabBarRootView()
         }
         .modelContainer(sharedModelContainer)
     }
 }
+
