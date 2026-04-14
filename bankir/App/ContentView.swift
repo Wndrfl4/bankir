@@ -4,6 +4,36 @@
 ////
 ////  Created by Aslan  on 17.02.2026.
 ////
+
+import SwiftUI
+
+struct ContentView: View {
+    @State private var isAuthenticated = AuthManager.shared.isAuthenticated()
+    
+    var body: some View {
+        if isAuthenticated {
+            TabBarRootView()
+                .onTapGesture {
+                    AuthManager.shared.resetInactivityTimer()
+                }
+        } else {
+            LoginView()
+                .onDisappear {
+                    // После логина обновить состояние
+                    isAuthenticated = AuthManager.shared.isAuthenticated()
+                }
+        }
+    }
+}
+
+#Preview {
+    ContentView()
+}////
+////  ContentView.swift
+////  bankir
+////
+////  Created by Aslan  on 17.02.2026.
+////
 //
 //import SwiftUI
 //import SwiftData

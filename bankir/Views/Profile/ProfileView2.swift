@@ -60,7 +60,11 @@ struct ProfileView: View {
             Text("Actions")
                 .font(.headline)
 
-            Button(role: .destructive) { /* TODO: sign out */ } label: {
+            Button(role: .destructive) {
+                AuthManager.shared.logout()
+                // Перезапуск или переход к логину
+                // Для простоты, можно добавить @Environment(\.dismiss) или глобальное состояние
+            } label: {
                 Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
             }
         }
@@ -78,7 +82,16 @@ struct ProfileView: View {
     }
 
     private func saveProfile() {
-        // Frontend-only: no persistence. Here you could validate or show a toast.
+        // Валидация
+        guard ValidationUtils.isValidUsername(username) else {
+            // Показать ошибку
+            return
+        }
+        guard ValidationUtils.isValidEmail(email) else {
+            // Показать ошибку
+            return
+        }
+        // Сохранить (в реальности, отправить на сервер)
     }
 }
 
