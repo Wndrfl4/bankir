@@ -117,4 +117,3 @@ struct PaymentsView: View {
 #Preview {
     PaymentsView()
 }
-

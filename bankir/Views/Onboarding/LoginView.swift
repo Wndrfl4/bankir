@@ -10,7 +10,7 @@ struct LoginView: View {
     @State private var show2FA = false
     
     private var isValidInput: Bool {
-        return ValidationUtils.isValidUsername(username) && ValidationUtils.isValidPassword(password)
+        ValidationUtils.isValidUsername(username) && ValidationUtils.isValidPassword(password)
     }
     
     var body: some View {
@@ -19,44 +19,60 @@ struct LoginView: View {
                 TwoFactorView()
             } else {
                 loginForm
+                    .navigationBarBackButtonHidden(true)
             }
         }
     }
-                Text("Вход в Bankir")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                
-                TextField("Имя пользователя", text: $username)
-                    .textFieldStyle(.roundedBorder)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                
-                SecureField("Пароль", text: $password)
-                    .textFieldStyle(.roundedBorder)
-                
-                if let error = errorMessage {
-                    Text(error)
-                        .foregroundColor(.red)
-                        .font(.caption)
-                }
-                
-                Button(action: login) {
-                    if isLoading {
-                        ProgressView()
-                    } else {
-                        Text("Войти")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                }
-            .disabled(isLoading || !isValidInput)
+    
+    private var loginForm: some View {
+        VStack(spacing: 16) {
+            Text("Вход в Bankir")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+            
+            TextField("Имя пользователя", text: $username)
+                .textFieldStyle(.roundedBorder)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+            
+            SecureField("Пароль", text: $password)
+                .textFieldStyle(.roundedBorder)
+            
+            if let error = errorMessage {
+                Text(error)
+                    .foregroundColor(.red)
+                    .font(.caption)
             }
-            .padding()
-            .navigationBarBackButtonHidden(true)
+            
+            Button(action: login) {
+                if isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                } else {
+                    Text("Войти")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+            }
+            .disabled(isLoading || !isValidInput)
+            
+            if canUseBiometrics() {
+                Button(action: authenticateWithBiometrics) {
+                    Text("Войти с помощью биометрии")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+                .disabled(isLoading)
+            }
         }
+        .padding()
     }
     
     private func login() {
@@ -67,7 +83,6 @@ struct LoginView: View {
             do {
                 let success = try await AuthManager.shared.login(username: username, password: password)
                 if success {
-                    // Переход к 2FA
                     show2FA = true
                 } else {
                     errorMessage = "Неверные учетные данные"
@@ -104,8 +119,8 @@ struct LoginView: View {
     }
 }
 
-extension AuthManager {
-    func saveToken(_ token: String) {
-        UserDefaults.standard.set(token, forKey: "authToken")
+#Preview {
+    NavigationStack {
+        LoginView()
     }
 }

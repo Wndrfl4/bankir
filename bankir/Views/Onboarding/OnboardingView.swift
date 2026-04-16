@@ -48,14 +48,6 @@ struct OnboardingView: View {
     }
 }
 
-struct LoginView: View {
-    var body: some View {
-        Text("Login View")
-            .font(.title)
-            .navigationBarTitle("Login", displayMode: .inline)
-    }
-}
-
 struct OnboardingView_Previews: PreviewProvider {
     static var previews: some View {
         OnboardingView()

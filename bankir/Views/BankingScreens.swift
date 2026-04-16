@@ -348,7 +348,6 @@ struct TopUpScreen: View {
                             .keyboardType(.decimalPad)
                             .privacySensitive(true)
                     }
-                    }
 
                     PrimaryButton(title: vm.state == .loading ? "Оплата…" : "Оплатить", isLoading: vm.state == .loading) {
                         focused = false
@@ -372,6 +371,7 @@ struct TopUpScreen: View {
         }
     }
 }
+
 
 // MARK: - Pay Bill
 final class PayBillViewModel: ObservableObject {

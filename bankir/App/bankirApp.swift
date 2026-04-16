@@ -50,7 +50,7 @@ struct bankirApp: App {
             Transaction.self,
             UserProfile.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none, allowsSave: true, groupContainer: nil, url: nil)
+        let modelConfiguration = ModelConfiguration("Default", schema: schema, isStoredInMemoryOnly: false, allowsSave: true, groupContainer: .none, cloudKitDatabase: .none)
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
