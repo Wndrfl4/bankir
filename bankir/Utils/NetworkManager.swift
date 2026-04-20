@@ -22,7 +22,9 @@ class NetworkManager {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         // Добавить авторизацию, если есть токен
-        if let token = getAuthToken() {
+        if let token = await MainActor.run(body: {
+            AuthManager.shared.getToken()
+        }) {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         
@@ -38,10 +40,6 @@ class NetworkManager {
         }
         
         return try JSONDecoder().decode(T.self, from: data)
-    }
-    
-    private func getAuthToken() -> String? {
-        return AuthManager.shared.getToken()
     }
 }
 

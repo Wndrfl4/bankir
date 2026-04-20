@@ -1,6 +1,13 @@
 import SwiftUI
 
 struct PaymentsView: View {
+    enum QuickPaymentAction: String, Identifiable {
+        case transfer = "Перевод"
+        case topUp = "Пополнение"
+        case payBill = "Оплата услуг"
+        
+        var id: String { rawValue }
+    }
 
     struct PaymentService: Identifiable {
         let id = UUID()
@@ -27,43 +34,75 @@ struct PaymentsView: View {
         GridItem(.flexible())
     ]
 
-    @State private var selectedService: PaymentService?
-    @State private var isActive = false
+    @State private var selectedQuickAction: QuickPaymentAction?
 
     var body: some View {
-
         NavigationStack {
-
-            ScrollView {
-
-                LazyVGrid(columns: columns, spacing: 16) {
-
-                    ForEach(services) { service in
-                        NavigationLink(
-                            destination: destinationView(for: service),
-                            isActive: Binding(
-                                get: { selectedService?.id == service.id && isActive },
-                                set: { newValue in
-                                    if newValue {
-                                        selectedService = service
-                                    } else {
-                                        selectedService = nil
-                                    }
-                                    isActive = newValue
-                                }
-                            )
-                        ) {
-                            serviceButton(service)
+            ZStack {
+                Theme.appBackground.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        hero
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Популярные действия")
+                                .font(.headline)
+                                .foregroundStyle(Theme.ink)
+                            
+                            HStack(spacing: 12) {
+                                quickActionCard(title: "Перевод", subtitle: "На карту", icon: "arrow.left.arrow.right.circle.fill", color: .blue, action: .transfer)
+                                quickActionCard(title: "Пополнение", subtitle: "Мобильный", icon: "iphone.gen3.radiowaves.left.and.right", color: .green, action: .topUp)
+                                quickActionCard(title: "Услуги", subtitle: "Коммунальные", icon: "bolt.circle.fill", color: .orange, action: .payBill)
+                            }
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Каталог сервисов")
+                                .font(.headline)
+                                .foregroundStyle(Theme.ink)
+                            
+                            LazyVGrid(columns: columns, spacing: 16) {
+                                ForEach(services) { service in
+                                    NavigationLink(destination: destinationView(for: service)) {
+                                        serviceButton(service)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
                     }
-
+                    .padding()
                 }
-                .padding()
-
             }
             .navigationTitle("Платежи")
+            .sheet(item: $selectedQuickAction) { action in
+                NavigationStack {
+                    switch action {
+                    case .transfer:
+                        TransferScreen()
+                    case .topUp:
+                        TopUpScreen()
+                    case .payBill:
+                        PayBillScreen()
+                    }
+                }
+            }
         }
+    }
+    
+    private var hero: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Платежи без очередей")
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+            Text("Быстрые действия сверху, остальные сервисы ниже как каталог.")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.85))
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.heroGradient, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     @ViewBuilder
@@ -93,24 +132,46 @@ struct PaymentsView: View {
     }
 
     private func serviceButton(_ service: PaymentService) -> some View {
-
         VStack(spacing: 10) {
-
             Image(systemName: service.icon)
                 .font(.system(size: 26))
                 .foregroundStyle(service.color)
-
+            
             Text(service.title)
                 .font(.footnote)
                 .multilineTextAlignment(.center)
-
         }
-        .frame(height: 90)
+        .frame(height: 96)
         .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.thinMaterial)
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Theme.secondaryCardBackground)
         )
+    }
+    
+    private func quickActionCard(title: String, subtitle: String, icon: String, color: Color, action: QuickPaymentAction) -> some View {
+        Button {
+            selectedQuickAction = action
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(color)
+                
+                Spacer()
+                
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(Theme.mutedText)
+            }
+            .frame(maxWidth: .infinity, minHeight: 126, alignment: .leading)
+            .padding(16)
+            .background(Theme.secondaryCardBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 }
 

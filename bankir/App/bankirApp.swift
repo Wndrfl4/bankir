@@ -11,6 +11,9 @@ import SwiftData
 @main
 struct bankirApp: App {
     init() {
+        #if targetEnvironment(simulator)
+        return
+        #else
         // Проверка на jailbreak
         if JailbreakDetection.isJailbroken() {
             JailbreakDetection.handleJailbreak()
@@ -42,6 +45,7 @@ struct bankirApp: App {
                 print("Attestation error: \(error)")
             }
         }
+        #endif
     }
     
     var sharedModelContainer: ModelContainer = {
@@ -53,7 +57,9 @@ struct bankirApp: App {
         let modelConfiguration = ModelConfiguration("Default", schema: schema, isStoredInMemoryOnly: false, allowsSave: true, groupContainer: .none, cloudKitDatabase: .none)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            seedDefaultAccountsIfNeeded(using: container.mainContext)
+            return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -61,9 +67,35 @@ struct bankirApp: App {
 
     var body: some Scene {
         WindowGroup {
-            TabBarRootView()
+            ContentView()
         }
         .modelContainer(sharedModelContainer)
     }
+    
+    private static func seedDefaultAccountsIfNeeded(using context: ModelContext) {
+        let descriptor = FetchDescriptor<UserProfile>()
+        let existingProfiles = (try? context.fetch(descriptor)) ?? []
+        
+        if !existingProfiles.contains(where: { $0.username.lowercased() == "admin" }) {
+            let adminProfile = UserProfile(
+                username: "admin",
+                email: "admin@bankir.local",
+                password: "password",
+                role: .admin
+            )
+            context.insert(adminProfile)
+        }
+        
+        if !existingProfiles.contains(where: { $0.username.lowercased() == "test" }) {
+            let mockProfile = UserProfile(
+                username: "test",
+                email: "user@bankir.local",
+                password: "password",
+                role: .user
+            )
+            context.insert(mockProfile)
+        }
+        
+        try? context.save()
+    }
 }
-

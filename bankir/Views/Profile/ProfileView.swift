@@ -19,39 +19,3 @@ struct BankirProfileView: View {
         .modelContainer(container)
 }
 
-struct TabBarRootView: View {
-    @State private var selectedTab: Int = 0
-    
-    var body: some View {
-        TabView(selection: $selectedTab) {
-            NavigationStack {
-                HomeView()
-            }
-            .tabItem { Label("Главная", systemImage: "house") }
-            .tag(0)
-
-            NavigationStack {
-                CardsView()
-            }
-            .tabItem { Label("Карты", systemImage: "creditcard") }
-            .tag(1)
-
-            NavigationStack {
-                PaymentsView()
-            }
-            .tabItem { Label("Платежи", systemImage: "list.bullet.rectangle") }
-            .tag(2)
-
-            NavigationStack {
-                ProfileView()
-            }
-            .tabItem { Label("Профиль", systemImage: "person.crop.circle") }
-            .tag(3)
-        }
-    }
-}
-
-#Preview {
-    TabBarRootView()
-}
-

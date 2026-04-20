@@ -1,7 +1,15 @@
 import SwiftUI
 
 struct HomeView: View {
+    enum QuickAction: Hashable {
+        case topUp
+        case transfer
+        case payBill
+        case history
+    }
+    
     @State private var showAllTransactions = false
+    @State private var selectedTransaction: Transaction?
 
     struct Transaction: Identifiable {
         enum Category: String {
@@ -47,18 +55,38 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    balanceCard
-                    quickActions
-                    recentSection
+            ZStack {
+                Theme.appBackground.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 16) {
+                        balanceCard
+                        quickActions
+                        recentSection
+                    }
+                    .padding()
                 }
-                .padding()
             }
             .navigationTitle("Главная")
+            .navigationDestination(for: QuickAction.self) { action in
+                switch action {
+                case .topUp:
+                    TopUpScreen()
+                case .transfer:
+                    TransferScreen()
+                case .payBill:
+                    PayBillScreen()
+                case .history:
+                    AllCompletedOperationsView(transactions: transactions)
+                }
+            }
         }
         .sheet(isPresented: $showAllTransactions) {
             AllCompletedOperationsView(transactions: transactions.filter { $0.status == .done })
+        }
+        .sheet(item: $selectedTransaction) { transaction in
+            TransactionDetailsView(transaction: transaction, formattedAmount: formattedAmount(transaction.amount, isDebit: transaction.isDebit), formattedDate: dateFormatter.string(from: transaction.date))
+                .presentationDetents([.medium])
         }
     }
 
@@ -80,24 +108,27 @@ struct HomeView: View {
 
     private var quickActions: some View {
         HStack(spacing: 12) {
-            actionButton(icon: "arrow.down.circle.fill", title: "Пополнить")
-            actionButton(icon: "arrow.up.circle.fill", title: "Перевод")
-            actionButton(icon: "creditcard.circle.fill", title: "Оплатить")
-            actionButton(icon: "clock.fill", title: "История")
+            actionButton(icon: "arrow.down.circle.fill", title: "Пополнить", action: .topUp)
+            actionButton(icon: "arrow.up.circle.fill", title: "Перевод", action: .transfer)
+            actionButton(icon: "creditcard.circle.fill", title: "Оплатить", action: .payBill)
+            actionButton(icon: "clock.fill", title: "История", action: .history)
         }
         .frame(maxWidth: .infinity)
     }
 
-    private func actionButton(icon: String, title: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 24))
-                .symbolRenderingMode(.hierarchical)
-            Text(title)
-                .font(.footnote)
+    private func actionButton(icon: String, title: String, action: QuickAction) -> some View {
+        NavigationLink(value: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 24))
+                    .symbolRenderingMode(.hierarchical)
+                Text(title)
+                    .font(.footnote)
+            }
+            .frame(width: 80, height: 80)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .frame(width: 80, height: 80)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .buttonStyle(.plain)
     }
 
     private var recentSection: some View {
@@ -158,7 +189,9 @@ struct HomeView: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture { }
+        .onTapGesture {
+            selectedTransaction = tx
+        }
     }
 
     private func categoryIcon(_ category: Transaction.Category) -> some View {
@@ -194,6 +227,48 @@ struct HomeView: View {
         let ns = amount as NSDecimalNumber
         let formatted = currencyFormatter.string(from: ns) ?? "₸0"
         return sign + formatted
+    }
+}
+
+private struct TransactionDetailsView: View {
+    let transaction: HomeView.Transaction
+    let formattedAmount: String
+    let formattedDate: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Capsule()
+                .fill(Color.secondary.opacity(0.25))
+                .frame(width: 42, height: 5)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 10)
+            
+            Text(transaction.title)
+                .font(.title2.weight(.bold))
+            
+            Text(formattedAmount)
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .foregroundStyle(transaction.isDebit ? Theme.ink : Theme.success)
+            
+            detailRow(title: "Категория", value: transaction.category.rawValue)
+            detailRow(title: "Дата", value: formattedDate)
+            detailRow(title: "Статус", value: transaction.status.rawValue)
+            
+            Spacer()
+        }
+        .padding(24)
+        .background(Theme.appBackground)
+    }
+    
+    private func detailRow(title: String, value: String) -> some View {
+        HStack {
+            Text(title)
+                .foregroundStyle(Theme.mutedText)
+            Spacer()
+            Text(value)
+                .fontWeight(.semibold)
+        }
+        .padding(.vertical, 6)
     }
 }
 
@@ -305,4 +380,3 @@ private struct AllCompletedOperationsView: View {
 #Preview {
     HomeView()
 }
-

@@ -74,19 +74,64 @@ public struct GamesView: View {
 
 // MARK: - Shared content builder
 private func content(title: String, systemImage: String, color: Color) -> some View {
-    VStack(spacing: 16) {
-        Image(systemName: systemImage)
-            .font(.system(size: 48))
-            .foregroundStyle(color)
-        Text(title)
-            .font(.title3)
-            .bold()
-        Text("Заглушка экрана. Замените на реальную реализацию.")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+    ZStack {
+        Theme.appBackground.ignoresSafeArea()
+        
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 14) {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 34, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 64, height: 64)
+                        .background(color.gradient, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    
+                    Text(title)
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.ink)
+                    
+                    Text("Экран уже подключён в навигацию, но бизнес-логика и форма ещё не собраны.")
+                        .font(.body)
+                        .foregroundStyle(Theme.mutedText)
+                }
+                .padding(20)
+                .background(Theme.secondaryCardBackground, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Что здесь будет")
+                        .font(.headline)
+                        .foregroundStyle(Theme.ink)
+                    placeholderRow("Форма ввода и валидация")
+                    placeholderRow("Выбор провайдера или сценария оплаты")
+                    placeholderRow("Подтверждение операции и статус")
+                }
+                .padding(20)
+                .background(Theme.secondaryCardBackground, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Статус")
+                        .font(.headline)
+                        .foregroundStyle(Theme.ink)
+                    Label("Экран в очереди на реализацию", systemImage: "clock.badge.exclamationmark")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.warning)
+                }
+                .padding(20)
+                .background(Theme.secondaryCardBackground, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            }
+            .padding()
+        }
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .padding()
+}
+
+private func placeholderRow(_ text: String) -> some View {
+    HStack(spacing: 10) {
+        Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(Theme.accent)
+        Text(text)
+            .foregroundStyle(Theme.ink)
+        Spacer()
+    }
 }
 
 #Preview("TravelView") { NavigationStack { TravelView() } }

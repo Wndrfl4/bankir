@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TwoFactorView: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var pin: String = ""
     @State private var errorMessage: String?
     @State private var isSettingPin = false
@@ -8,66 +9,96 @@ struct TwoFactorView: View {
     @State private var confirmPin: String = ""
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Двухфакторная аутентификация")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            if isSettingPin {
-                // Экран установки PIN
-                Text("Установите PIN-код")
-                    .font(.headline)
+        ScrollView {
+            VStack(spacing: 24) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Подтверждение входа")
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.ink)
+                    
+                    Text(isSettingPin ? "Создай PIN-код для следующего входа." : "Введи PIN-код, чтобы завершить авторизацию.")
+                        .font(.body)
+                        .foregroundStyle(Theme.mutedText)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
-                SecureField("Новый PIN", text: $newPin)
-                    .textFieldStyle(.roundedBorder)
-                    .keyboardType(.numberPad)
-                
-                SecureField("Подтвердите PIN", text: $confirmPin)
-                    .textFieldStyle(.roundedBorder)
-                    .keyboardType(.numberPad)
-                
-                Button("Установить PIN") {
-                    if newPin == confirmPin && newPin.count >= 4 {
-                        AuthManager.shared.setPin(newPin)
-                        isSettingPin = false
+                VStack(alignment: .leading, spacing: 16) {
+                    if isSettingPin {
+                        pinField(title: "Новый PIN", text: $newPin)
+                        pinField(title: "Подтвердите PIN", text: $confirmPin)
+                        
+                        Button("Установить PIN") {
+                            if newPin == confirmPin && newPin.count >= 4 {
+                                AuthManager.shared.setPin(newPin)
+                                errorMessage = nil
+                                isSettingPin = false
+                            } else {
+                                errorMessage = "PIN должен быть не менее 4 символов и совпадать"
+                            }
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .foregroundStyle(.white)
+                        .background(Theme.heroGradient, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .disabled(newPin.isEmpty || confirmPin.isEmpty)
                     } else {
-                        errorMessage = "PIN должен быть не менее 4 символов и совпадать"
+                        pinField(title: "PIN", text: $pin)
+                        
+                        Button("Подтвердить") {
+                            if AuthManager.shared.verify2FA(pin: pin) {
+                                dismiss()
+                            } else {
+                                errorMessage = "Неверный PIN"
+                            }
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .foregroundStyle(.white)
+                        .background(Theme.heroGradient, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .disabled(pin.isEmpty)
+                        
+                        Button("Установить новый PIN") {
+                            isSettingPin = true
+                            errorMessage = nil
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accentStrong)
+                    }
+                    
+                    if let error = errorMessage {
+                        HStack(spacing: 10) {
+                            Image(systemName: "lock.slash.fill")
+                                .foregroundStyle(Theme.danger)
+                            Text(error)
+                                .font(.footnote)
+                                .foregroundStyle(Theme.danger)
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.danger.opacity(0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                 }
-                .disabled(newPin.isEmpty || confirmPin.isEmpty)
-            } else {
-                // Экран ввода PIN
-                Text("Введите PIN-код")
-                    .font(.headline)
+                .padding(20)
+                .background(Theme.secondaryCardBackground, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                 
-                SecureField("PIN", text: $pin)
-                    .textFieldStyle(.roundedBorder)
-                    .keyboardType(.numberPad)
-                
-                if let error = errorMessage {
-                    Text(error)
-                        .foregroundColor(.red)
-                        .font(.caption)
-                }
-                
-                Button("Подтвердить") {
-                    if AuthManager.shared.verify2FA(pin: pin) {
-                        // Успех, переход к app
-                        // Использовать @Environment(\.dismiss) или глобальное состояние
-                    } else {
-                        errorMessage = "Неверный PIN"
-                    }
-                }
-                .disabled(pin.isEmpty)
-                
-                Button("Установить новый PIN") {
-                    isSettingPin = true
-                    errorMessage = nil
-                }
+                Spacer(minLength: 20)
             }
-            
-            Spacer()
+            .padding(24)
         }
-        .padding()
+    }
+    
+    private func pinField(title: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.mutedText)
+            
+            SecureField(title, text: text)
+                .keyboardType(.numberPad)
+                .padding(14)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
     }
 }

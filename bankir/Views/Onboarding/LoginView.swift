@@ -1,78 +1,147 @@
 import SwiftUI
 import LocalAuthentication
+import SwiftData
 
 struct LoginView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @ObservedObject private var authManager = AuthManager.shared
     @State private var username: String = ""
     @State private var password: String = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var showBiometric = false
     @State private var show2FA = false
     
     private var isValidInput: Bool {
-        ValidationUtils.isValidUsername(username) && ValidationUtils.isValidPassword(password)
+        ValidationUtils.isValidUsername(username) && !password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     
     var body: some View {
         NavigationStack {
-            if show2FA {
-                TwoFactorView()
-            } else {
-                loginForm
-                    .navigationBarBackButtonHidden(true)
+            ZStack {
+                Theme.appBackground.ignoresSafeArea()
+                
+                if show2FA {
+                    TwoFactorView()
+                } else {
+                    loginForm
+                        .navigationBarBackButtonHidden(true)
+                }
             }
         }
     }
     
     private var loginForm: some View {
-        VStack(spacing: 16) {
-            Text("Вход в Bankir")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            TextField("Имя пользователя", text: $username)
-                .textFieldStyle(.roundedBorder)
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
-            
-            SecureField("Пароль", text: $password)
-                .textFieldStyle(.roundedBorder)
-            
-            if let error = errorMessage {
-                Text(error)
-                    .foregroundColor(.red)
-                    .font(.caption)
-            }
-            
-            Button(action: login) {
-                if isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                } else {
-                    Text("Войти")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+        ScrollView {
+            VStack(spacing: 24) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Вход в Bankir")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.ink)
+                    
+                    Text("Выбери режим доступа: гость, пользователь или админ.")
+                        .font(.body)
+                        .foregroundStyle(Theme.mutedText)
                 }
-            }
-            .disabled(isLoading || !isValidInput)
-            
-            if canUseBiometrics() {
-                Button(action: authenticateWithBiometrics) {
-                    Text("Войти с помощью биометрии")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                VStack(alignment: .leading, spacing: 16) {
+                    authField(label: "Имя пользователя") {
+                        TextField("Например, admin", text: $username)
+                            .textContentType(.username)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                    
+                    authField(label: "Пароль") {
+                        SecureField("Введите пароль", text: $password)
+                            .textContentType(.password)
+                    }
+                    
+                    if let error = errorMessage {
+                        HStack(spacing: 10) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(Theme.danger)
+                            Text(error)
+                                .font(.footnote)
+                                .foregroundStyle(Theme.danger)
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.danger.opacity(0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    
+                    Button(action: login) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(Theme.heroGradient)
+                            
+                            if isLoading {
+                                ProgressView()
+                                    .tint(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 18)
+                            } else {
+                                Text("Войти")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 18)
+                            }
+                        }
+                    }
+                    .disabled(isLoading || !isValidInput)
+                    
+                    if canUseBiometrics() {
+                        Button(action: authenticateWithBiometrics) {
+                            Label("Войти по биометрии", systemImage: "faceid")
+                                .font(.headline)
+                                .foregroundStyle(Theme.accentStrong)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        }
+                        .disabled(isLoading)
+                    }
+                    
+                    Button("Продолжить как гость") {
+                        authManager.continueAsGuest()
+                        dismiss()
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.mutedText)
+                    .disabled(isLoading)
                 }
-                .disabled(isLoading)
+                .padding(20)
+                .background(Theme.secondaryCardBackground, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Демо-аккаунты")
+                        .font(.headline)
+                        .foregroundStyle(Theme.ink)
+                    Text("admin / password -> админ")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.mutedText)
+                    Text("test / password -> пользователь")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.mutedText)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .padding(24)
         }
-        .padding()
+    }
+    
+    private func authField<Content: View>(label: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.mutedText)
+            
+            content()
+                .padding(14)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
     }
     
     private func login() {
@@ -80,6 +149,16 @@ struct LoginView: View {
         errorMessage = nil
         
         Task {
+            let descriptor = FetchDescriptor<UserProfile>()
+            let profiles = (try? modelContext.fetch(descriptor)) ?? []
+            
+            if let profile = profiles.first(where: { $0.username.lowercased() == username.lowercased() && $0.password == password }) {
+                authManager.signIn(as: profile.role, profileID: profile.id)
+                dismiss()
+                isLoading = false
+                return
+            }
+            
             do {
                 let success = try await AuthManager.shared.login(username: username, password: password)
                 if success {
@@ -107,10 +186,8 @@ struct LoginView: View {
         context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, error in
             DispatchQueue.main.async {
                 if success {
-                    // Предполагаем, что биометрия заменяет логин
-                    // В реальности, связать с аккаунтом
-                    AuthManager.shared.saveToken("biometricToken") // Mock
-                    // Переход
+                    authManager.authenticateWithBiometrics()
+                    dismiss()
                 } else {
                     errorMessage = error?.localizedDescription ?? "Биометрия не удалась"
                 }
