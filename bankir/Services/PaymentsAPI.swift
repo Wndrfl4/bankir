@@ -27,46 +27,87 @@ enum PaymentsError: Error {
     case network(Error)
 }
 
+private struct TransferRequest: Encodable {
+    let fromCard: String
+    let toCard: String
+    let amount: Decimal
+    let note: String
+}
+
+private struct TopUpRequest: Encodable {
+    let provider: String
+    let phone: String
+    let amount: Decimal
+}
+
+private struct PayBillRequest: Encodable {
+    let category: String
+    let account: String
+    let amount: Decimal
+}
+
 final class DefaultPaymentsAPI: PaymentsAPI {
     static let shared = DefaultPaymentsAPI()
-    private let baseURL = URL(string: "https://api.bankir.com")! // Заменить на реальный URL
     
     private init() {}
     
     func transfer(fromCard: String, toCard: String, amount: Decimal, note: String) async throws {
-        // Валидация перед отправкой
         guard fromCard.count == 16, toCard.count == 16, amount > 0 else {
             throw PaymentsError.server
         }
         
-        // В реальном коде: отправить запрос
-        // let response: TransferResponse = try await NetworkManager.shared.performRequest(
-        //     url: baseURL.appendingPathComponent("/transfer"),
-        //     method: "POST",
-        //     body: JSONEncoder().encode(["fromCard": fromCard, "toCard": toCard, "amount": amount, "note": note])
-        // )
-        
-        // Mock для примера
-        try await Task.sleep(nanoseconds: 1_000_000_000)
-        if amount > 1_000_000 {
-            throw PaymentsError.limitExceeded
+        do {
+            let _: TransferResponse = try await NetworkManager.shared.performRequest(
+                url: NetworkManager.shared.endpoint("payments/transfer"),
+                body: TransferRequest(
+                    fromCard: fromCard,
+                    toCard: toCard,
+                    amount: amount,
+                    note: note
+                )
+            )
+        } catch let error as PaymentsError {
+            throw error
+        } catch {
+            throw PaymentsError.network(error)
         }
-        // Предполагаем успех
     }
     
     func topUp(provider: String, phone: String, amount: Decimal) async throws {
-        // Аналогично
-        try await Task.sleep(nanoseconds: 800_000_000)
-        if phone.count < 11 {
+        guard phone.count >= 11, amount > 0 else {
             throw PaymentsError.server
+        }
+        
+        do {
+            let _: TopUpResponse = try await NetworkManager.shared.performRequest(
+                url: NetworkManager.shared.endpoint("payments/top-up"),
+                body: TopUpRequest(
+                    provider: provider,
+                    phone: phone,
+                    amount: amount
+                )
+            )
+        } catch {
+            throw PaymentsError.network(error)
         }
     }
     
     func payBill(category: String, account: String, amount: Decimal) async throws {
-        // Аналогично
-        try await Task.sleep(nanoseconds: 1_100_000_000)
         if amount <= 0 {
             throw PaymentsError.server
+        }
+        
+        do {
+            let _: PayBillResponse = try await NetworkManager.shared.performRequest(
+                url: NetworkManager.shared.endpoint("payments/bills"),
+                body: PayBillRequest(
+                    category: category,
+                    account: account,
+                    amount: amount
+                )
+            )
+        } catch {
+            throw PaymentsError.network(error)
         }
     }
 }

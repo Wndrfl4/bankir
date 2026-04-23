@@ -1,7 +1,3 @@
 Admin account
 login: admin
-password: password
-
-Mock user account
-login: test
-password: password
+password: Admin123!

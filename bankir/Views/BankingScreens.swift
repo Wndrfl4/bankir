@@ -135,6 +135,11 @@ struct LabeledField<Content: View>: View {
 
 // MARK: - Transfer Money
 final class TransferViewModel: ObservableObject {
+    struct TransferCard {
+        let title: String
+        let number: String
+    }
+
     @Published var fromCardIndex: Int = 0
     @Published var toCardRaw: String = ""
     @Published var amount: Decimal = 0
@@ -144,10 +149,10 @@ final class TransferViewModel: ObservableObject {
     private let api: PaymentsAPI
     private let rateLimiter = RateLimiter(maxAttempts: 3, timeWindow: 300) // 3 попытки в 5 минут
 
-    let cards: [String] = [
-        "• • • • 1234 · Kaspi Gold",
-        "• • • • 5678 · Revolut",
-        "• • • • 9012 · Tinkoff"
+    let cards: [TransferCard] = [
+        .init(title: "• • • • 1234 · Kaspi Gold", number: "1111222233331234"),
+        .init(title: "• • • • 5678 · Revolut", number: "1111222233335678"),
+        .init(title: "• • • • 9012 · Tinkoff", number: "1111222233339012")
     ]
 
     init(api: PaymentsAPI = DefaultPaymentsAPI.shared) {
@@ -182,7 +187,12 @@ final class TransferViewModel: ObservableObject {
         let sanitizedNote = InputSanitization.sanitizeForAPI(note, maxLength: 100)
         
         do {
-            try await api.transfer(fromCard: cards[fromCardIndex], toCard: digitsOnly(toCardRaw), amount: amount, note: sanitizedNote)
+            try await api.transfer(
+                fromCard: cards[fromCardIndex].number,
+                toCard: digitsOnly(toCardRaw),
+                amount: amount,
+                note: sanitizedNote
+            )
             rateLimiter.recordAttempt()
             state = .success("Перевод успешно отправлен на карту •••• \(String(toCardMasked.suffix(4))).")
         } catch {
@@ -210,7 +220,7 @@ struct TransferScreen: View {
                     LabeledField(label: "С какой карты") {
                         Picker("Карта", selection: $vm.fromCardIndex) {
                             ForEach(vm.cards.indices, id: \.self) { idx in
-                                Text(vm.cards[idx]).tag(idx)
+                                Text(vm.cards[idx].title).tag(idx)
                             }
                         }
                         .pickerStyle(.menu)
@@ -496,4 +506,3 @@ struct PayBillScreen: View {
 #Preview("Pay Bill") {
     NavigationStack { PayBillScreen() }
 }
-

@@ -1,12 +1,15 @@
 import SwiftUI
 
 struct TwoFactorView: View {
-    @Environment(\.dismiss) private var dismiss
     @State private var pin: String = ""
     @State private var errorMessage: String?
-    @State private var isSettingPin = false
+    @State private var isSettingPin: Bool
     @State private var newPin: String = ""
     @State private var confirmPin: String = ""
+    
+    init() {
+        _isSettingPin = State(initialValue: !AuthManager.shared.hasPIN())
+    }
     
     var body: some View {
         ScrollView {
@@ -30,6 +33,7 @@ struct TwoFactorView: View {
                         Button("Установить PIN") {
                             if newPin == confirmPin && newPin.count >= 4 {
                                 AuthManager.shared.setPin(newPin)
+                                AuthManager.shared.completePendingAuthenticationAfterPINSetup()
                                 errorMessage = nil
                                 isSettingPin = false
                             } else {
@@ -47,7 +51,7 @@ struct TwoFactorView: View {
                         
                         Button("Подтвердить") {
                             if AuthManager.shared.verify2FA(pin: pin) {
-                                dismiss()
+                                errorMessage = nil
                             } else {
                                 errorMessage = "Неверный PIN"
                             }

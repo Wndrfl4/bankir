@@ -14,6 +14,9 @@ struct bankirApp: App {
         #if targetEnvironment(simulator)
         return
         #else
+        #if DEBUG
+        return
+        #else
         // Проверка на jailbreak
         if JailbreakDetection.isJailbroken() {
             JailbreakDetection.handleJailbreak()
@@ -45,6 +48,7 @@ struct bankirApp: App {
                 print("Attestation error: \(error)")
             }
         }
+        #endif
         #endif
     }
     

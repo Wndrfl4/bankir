@@ -1,9 +1,8 @@
 import SwiftUI
-import SwiftData
 
 struct RegisterView: View {
-    @Environment(\.modelContext) private var modelContext
     @ObservedObject private var authManager = AuthManager.shared
+    @EnvironmentObject private var preferences: AppPreferencesManager
     
     @State private var username = ""
     @State private var email = ""
@@ -26,21 +25,21 @@ struct RegisterView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Регистрация")
+                        Text(preferences.text("Регистрация", "Registration"))
                             .font(.system(size: 34, weight: .bold, design: .rounded))
                             .foregroundStyle(Theme.ink)
                         
-                        Text("Создай аккаунт. Имя, почта и пароль будут сохранены локально в приложении.")
+                        Text(preferences.text("Создай аккаунт. Данные будут сохранены в backend и станут доступны после входа.", "Create an account. Your data will be stored in the backend and available after sign in."))
                             .font(.body)
                             .foregroundStyle(Theme.mutedText)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     
                     VStack(alignment: .leading, spacing: 16) {
-                        formField(title: "Имя пользователя", text: $username, placeholder: "Например, aslan_user")
+                        formField(title: preferences.text("Имя пользователя", "Username"), text: $username, placeholder: "aslan_user")
                         formField(title: "Email", text: $email, placeholder: "user@example.com", keyboard: .emailAddress)
-                        secureField(title: "Пароль", text: $password, placeholder: "Минимум 6 символов")
-                        secureField(title: "Подтвердите пароль", text: $confirmPassword, placeholder: "Повтори пароль")
+                        secureField(title: preferences.text("Пароль", "Password"), text: $password, placeholder: preferences.text("Минимум 6 символов", "Minimum 6 characters"))
+                        secureField(title: preferences.text("Подтвердите пароль", "Confirm Password"), text: $confirmPassword, placeholder: preferences.text("Повтори пароль", "Repeat password"))
                         
                         if let errorMessage {
                             Text(errorMessage)
@@ -60,7 +59,7 @@ struct RegisterView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 18)
                             } else {
-                                Text("Создать аккаунт")
+                                Text(preferences.text("Создать аккаунт", "Create Account"))
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 18)
@@ -77,45 +76,27 @@ struct RegisterView: View {
                 .padding(24)
             }
         }
-        .navigationTitle("Новый аккаунт")
+        .navigationTitle(preferences.text("Новый аккаунт", "New Account"))
     }
     
     private func register() {
         errorMessage = nil
         
         guard password == confirmPassword else {
-            errorMessage = "Пароли не совпадают"
+            errorMessage = preferences.text("Пароли не совпадают", "Passwords do not match")
             return
         }
         
         isSaving = true
-        
-        let descriptor = FetchDescriptor<UserProfile>()
-        let existingProfiles = (try? modelContext.fetch(descriptor)) ?? []
-        
-        if existingProfiles.contains(where: { $0.username.lowercased() == username.lowercased() }) {
-            errorMessage = "Пользователь с таким именем уже существует"
+        Task {
+            do {
+                try await authManager.register(username: username, email: email, password: password)
+            } catch {
+                errorMessage = preferences.text("Не удалось создать аккаунт", "Failed to create account") + ": \(error.localizedDescription)"
+            }
+            
             isSaving = false
-            return
         }
-        
-        if existingProfiles.contains(where: { $0.email.lowercased() == email.lowercased() }) {
-            errorMessage = "Аккаунт с таким email уже существует"
-            isSaving = false
-            return
-        }
-        
-        let profile = UserProfile(username: username, email: email, password: password, role: .user)
-        modelContext.insert(profile)
-        
-        do {
-            try modelContext.save()
-            authManager.signIn(as: .user, profileID: profile.id)
-        } catch {
-            errorMessage = "Не удалось сохранить аккаунт"
-        }
-        
-        isSaving = false
     }
     
     private func formField(title: String, text: Binding<String>, placeholder: String, keyboard: UIKeyboardType = .default) -> some View {
@@ -123,11 +104,17 @@ struct RegisterView: View {
             Text(title)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Theme.mutedText)
-            TextField(placeholder, text: text)
+            TextField(
+                "",
+                text: text,
+                prompt: Text(placeholder).foregroundStyle(Color.black.opacity(0.65))
+            )
                 .keyboardType(keyboard)
                 .textContentType(keyboard == .emailAddress ? .emailAddress : .username)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .foregroundStyle(Color.black)
+                .tint(Color.black)
                 .padding(14)
                 .background(Color.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
@@ -138,8 +125,14 @@ struct RegisterView: View {
             Text(title)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Theme.mutedText)
-            SecureField(placeholder, text: text)
+            SecureField(
+                "",
+                text: text,
+                prompt: Text(placeholder).foregroundStyle(Color.black.opacity(0.65))
+            )
                 .textContentType(.newPassword)
+                .foregroundStyle(Color.black)
+                .tint(Color.black)
                 .padding(14)
                 .background(Color.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
@@ -148,4 +141,5 @@ struct RegisterView: View {
 
 #Preview {
     RegisterView()
+        .environmentObject(AppPreferencesManager.shared)
 }

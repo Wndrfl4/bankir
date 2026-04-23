@@ -1,6 +1,24 @@
 import SwiftUI
 
 struct PaymentsView: View {
+    private static let services: [PaymentService] = [
+        .init(title: "Путешествия", icon: "suitcase.fill", color: .orange),
+        .init(title: "Документы", icon: "doc.text.fill", color: .blue),
+        .init(title: "Кино Афиша", icon: "film.fill", color: .purple),
+        .init(title: "Онлайн магазин", icon: "cart.fill", color: .green),
+        .init(title: "ЖД билеты", icon: "train.side.front.car", color: .teal),
+        .init(title: "Авиабилеты", icon: "airplane", color: .indigo),
+        .init(title: "Коммунальные", icon: "bolt.fill", color: .yellow),
+        .init(title: "Продукты", icon: "basket.fill", color: .pink),
+        .init(title: "Игры", icon: "gamecontroller.fill", color: .red)
+    ]
+    
+    private static let columns = [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ]
+    
     enum QuickPaymentAction: String, Identifiable {
         case transfer = "Перевод"
         case topUp = "Пополнение"
@@ -16,24 +34,6 @@ struct PaymentsView: View {
         let color: Color
     }
 
-    private var services: [PaymentService] = [
-        .init(title: "Путешествия", icon: "suitcase.fill", color: .orange),
-        .init(title: "Документы", icon: "doc.text.fill", color: .blue),
-        .init(title: "Кино Афиша", icon: "film.fill", color: .purple),
-        .init(title: "Онлайн магазин", icon: "cart.fill", color: .green),
-        .init(title: "ЖД билеты", icon: "train.side.front.car", color: .teal),
-        .init(title: "Авиабилеты", icon: "airplane", color: .indigo),
-        .init(title: "Коммунальные", icon: "bolt.fill", color: .yellow),
-        .init(title: "Продукты", icon: "basket.fill", color: .pink),
-        .init(title: "Игры", icon: "gamecontroller.fill", color: .red)
-    ]
-
-    private let columns = [
-        GridItem(.flexible()),
-        GridItem(.flexible()),
-        GridItem(.flexible())
-    ]
-
     @State private var selectedQuickAction: QuickPaymentAction?
 
     var body: some View {
@@ -42,7 +42,7 @@ struct PaymentsView: View {
                 Theme.appBackground.ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+                    LazyVStack(alignment: .leading, spacing: 20) {
                         hero
                         
                         VStack(alignment: .leading, spacing: 12) {
@@ -62,8 +62,8 @@ struct PaymentsView: View {
                                 .font(.headline)
                                 .foregroundStyle(Theme.ink)
                             
-                            LazyVGrid(columns: columns, spacing: 16) {
-                                ForEach(services) { service in
+                            LazyVGrid(columns: Self.columns, spacing: 16) {
+                                ForEach(Self.services) { service in
                                     NavigationLink(destination: destinationView(for: service)) {
                                         serviceButton(service)
                                     }

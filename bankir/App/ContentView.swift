@@ -9,10 +9,11 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var authManager = AuthManager.shared
+    @StateObject private var preferences = AppPreferencesManager.shared
     
     var body: some View {
         Group {
-            if authManager.isAuthenticated() {
+            if authManager.isAuthenticated {
                 TabBarRootView()
                     .onTapGesture {
                         authManager.resetInactivityTimer()
@@ -21,7 +22,15 @@ struct ContentView: View {
                 WelcomeView()
             }
         }
+        .preferredColorScheme(preferences.colorScheme)
+        .onAppear {
+            preferences.reload(for: authManager.currentProfileID)
+        }
+        .onChange(of: authManager.currentProfileID) { profileID in
+            preferences.reload(for: profileID)
+        }
         .environmentObject(authManager)
+        .environmentObject(preferences)
     }
 }
 

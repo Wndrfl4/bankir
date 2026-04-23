@@ -1,0 +1,16 @@
+.DS_Store
+
+# Xcode user data
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# Backend secrets and local env files
+backend/.env
+backend/.env.local
+backend/.env.*.local
+
+# Backend dependencies and build output
+backend/node_modules/
+backend/dist/
+backend/*.tsbuildinfo

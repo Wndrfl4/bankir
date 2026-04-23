@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct WelcomeView: View {
+    @EnvironmentObject private var preferences: AppPreferencesManager
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -20,11 +22,11 @@ struct WelcomeView: View {
                                 .foregroundStyle(.white)
                         }
                         
-                        Text("Добро пожаловать в Bankir")
+                        Text(preferences.text("Добро пожаловать в Bankir", "Welcome to Bankir"))
                             .font(.system(size: 38, weight: .bold, design: .rounded))
                             .foregroundStyle(Theme.ink)
                         
-                        Text("Сначала выбери, что тебе нужно: создать новый аккаунт или войти в уже существующий.")
+                        Text(preferences.text("Сначала выбери, что тебе нужно: создать новый аккаунт или войти в уже существующий.", "Choose what you want to do first: create a new account or sign in to an existing one."))
                             .font(.body)
                             .foregroundStyle(Theme.mutedText)
                     }
@@ -34,7 +36,7 @@ struct WelcomeView: View {
                         NavigationLink {
                             RegisterView()
                         } label: {
-                            Text("Зарегистрироваться")
+                            Text(preferences.text("Зарегистрироваться", "Create Account"))
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
@@ -45,7 +47,7 @@ struct WelcomeView: View {
                         NavigationLink {
                             LoginView()
                         } label: {
-                            Text("Войти")
+                            Text(preferences.text("Войти", "Sign In"))
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
@@ -65,4 +67,5 @@ struct WelcomeView: View {
 
 #Preview {
     WelcomeView()
+        .environmentObject(AppPreferencesManager.shared)
 }

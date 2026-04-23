@@ -18,6 +18,8 @@
     <string>1.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>BANKIR_API_BASE_URL</key>
+    <string>http://MacBook-Air-Aslan.local:3000/api</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>UIApplicationSceneManifest</key>
@@ -61,13 +63,13 @@
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>
-        <false/>
+        <true/>
         <key>NSAllowsArbitraryLoadsForMedia</key>
         <false/>
         <key>NSAllowsArbitraryLoadsInWebContent</key>
         <false/>
         <key>NSAllowsLocalNetworking</key>
-        <false/>
+        <true/>
         <key>NSExceptionDomains</key>
         <dict>
             <key>api.bankir.com</key>
@@ -77,6 +79,23 @@
                 <key>NSExceptionMinimumTLSVersion</key>
                 <string>TLSv1.2</string>
                 <key>NSExceptionRequiresForwardSecrecy</key>
+                <true/>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+            </dict>
+            <key>127.0.0.1</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+            </dict>
+            <key>localhost</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+            </dict>
+            <key>MacBook-Air-Aslan.local</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
                 <true/>
                 <key>NSIncludesSubdomains</key>
                 <true/>

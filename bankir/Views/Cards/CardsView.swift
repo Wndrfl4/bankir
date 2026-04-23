@@ -23,17 +23,17 @@ struct CardsView: View {
                 Theme.appBackground.ignoresSafeArea()
                 
                 ScrollView {
-                VStack(spacing: 16) {
-                    summaryCard
-                    
-                    ForEach(cards) { card in
-                        cardView(card)
+                    LazyVStack(spacing: 16) {
+                        summaryCard
+                        
+                        ForEach(cards) { card in
+                            cardView(card)
+                        }
+                        
+                        addCardButton
                     }
-                    
-                    addCardButton
+                    .padding()
                 }
-                .padding()
-            }
             }
             .navigationTitle("Карты")
             .sheet(isPresented: $isPresentingAddCard) {

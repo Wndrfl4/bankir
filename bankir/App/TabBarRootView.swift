@@ -10,38 +10,39 @@ import SwiftUI
 
 struct TabBarRootView: View {
     @EnvironmentObject private var authManager: AuthManager
+    @EnvironmentObject private var preferences: AppPreferencesManager
     
     var body: some View {
         TabView {
             HomeView()
                 .tabItem {
-                    Label("Главная", systemImage: "house.fill")
+                    Label(preferences.text("Главная", "Home"), systemImage: "house.fill")
                 }
 
             if authManager.hasAccess(to: .payments) {
                 PaymentsView()
                     .tabItem {
-                        Label("Платежи", systemImage: "creditcard.fill")
+                        Label(preferences.text("Платежи", "Payments"), systemImage: "creditcard.fill")
                     }
             }
 
             if authManager.hasAccess(to: .cards) {
                 CardsView()
                     .tabItem {
-                        Label("Карты", systemImage: "wallet.pass.fill")
+                        Label(preferences.text("Карты", "Cards"), systemImage: "wallet.pass.fill")
                     }
             }
 
             if authManager.hasAccess(to: .categoriesManagement) {
                 CategoriesView()
                     .tabItem {
-                        Label("Категории", systemImage: "folder.fill")
+                        Label(preferences.text("Категории", "Categories"), systemImage: "folder.fill")
                     }
             }
 
             ProfileView()
                 .tabItem {
-                    Label("Профиль", systemImage: "person.fill")
+                    Label(preferences.text("Профиль", "Profile"), systemImage: "person.fill")
                 }
         }
     }
@@ -50,4 +51,5 @@ struct TabBarRootView: View {
 #Preview {
     TabBarRootView()
         .environmentObject(AuthManager.shared)
+        .environmentObject(AppPreferencesManager.shared)
 }

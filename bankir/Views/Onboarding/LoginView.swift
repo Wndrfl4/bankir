@@ -1,11 +1,9 @@
 import SwiftUI
 import LocalAuthentication
-import SwiftData
 
 struct LoginView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
     @ObservedObject private var authManager = AuthManager.shared
+    @EnvironmentObject private var preferences: AppPreferencesManager
     @State private var username: String = ""
     @State private var password: String = ""
     @State private var isLoading = false
@@ -35,27 +33,40 @@ struct LoginView: View {
         ScrollView {
             VStack(spacing: 24) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Вход в Bankir")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.ink)
-                    
-                    Text("Выбери режим доступа: гость, пользователь или админ.")
-                        .font(.body)
-                        .foregroundStyle(Theme.mutedText)
+                        Text(preferences.text("Вход в Bankir", "Sign In to Bankir"))
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.ink)
+                        
+                        Text(preferences.text("Выбери режим доступа: гость, пользователь или админ.", "Choose access mode: guest, user, or admin."))
+                            .font(.body)
+                            .foregroundStyle(Theme.mutedText)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
                 VStack(alignment: .leading, spacing: 16) {
-                    authField(label: "Имя пользователя") {
-                        TextField("Например, admin", text: $username)
+                    authField(label: preferences.text("Имя пользователя", "Username")) {
+                        TextField(
+                            "",
+                            text: $username,
+                            prompt: Text("admin").foregroundStyle(Color.black.opacity(0.65))
+                        )
                             .textContentType(.username)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
+                            .foregroundStyle(Color.black)
+                            .tint(Color.black)
                     }
                     
-                    authField(label: "Пароль") {
-                        SecureField("Введите пароль", text: $password)
+                    authField(label: preferences.text("Пароль", "Password")) {
+                        SecureField(
+                            "",
+                            text: $password,
+                            prompt: Text(preferences.text("Введите пароль", "Enter password"))
+                                .foregroundStyle(Color.black.opacity(0.65))
+                        )
                             .textContentType(.password)
+                            .foregroundStyle(Color.black)
+                            .tint(Color.black)
                     }
                     
                     if let error = errorMessage {
@@ -82,7 +93,7 @@ struct LoginView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 18)
                             } else {
-                                Text("Войти")
+                                Text(preferences.text("Войти", "Sign In"))
                                     .font(.headline)
                                     .foregroundStyle(.white)
                                     .frame(maxWidth: .infinity)
@@ -94,7 +105,7 @@ struct LoginView: View {
                     
                     if canUseBiometrics() {
                         Button(action: authenticateWithBiometrics) {
-                            Label("Войти по биометрии", systemImage: "faceid")
+                            Label(preferences.text("Войти по биометрии", "Use Biometrics"), systemImage: "faceid")
                                 .font(.headline)
                                 .foregroundStyle(Theme.accentStrong)
                                 .frame(maxWidth: .infinity)
@@ -104,9 +115,8 @@ struct LoginView: View {
                         .disabled(isLoading)
                     }
                     
-                    Button("Продолжить как гость") {
+                    Button(preferences.text("Продолжить как гость", "Continue as Guest")) {
                         authManager.continueAsGuest()
-                        dismiss()
                     }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.mutedText)
@@ -116,13 +126,13 @@ struct LoginView: View {
                 .background(Theme.secondaryCardBackground, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Демо-аккаунты")
+                    Text(preferences.text("Вход через backend", "Backend Sign-In"))
                         .font(.headline)
                         .foregroundStyle(Theme.ink)
-                    Text("admin / password -> админ")
+                    Text(preferences.text("Локальные demo-аккаунты больше не используются.", "Local demo accounts are no longer used."))
                         .font(.footnote)
                         .foregroundStyle(Theme.mutedText)
-                    Text("test / password -> пользователь")
+                    Text(preferences.text("Сначала зарегистрируй пользователя через экран регистрации.", "Register a user first from the registration screen."))
                         .font(.footnote)
                         .foregroundStyle(Theme.mutedText)
                 }
@@ -149,25 +159,15 @@ struct LoginView: View {
         errorMessage = nil
         
         Task {
-            let descriptor = FetchDescriptor<UserProfile>()
-            let profiles = (try? modelContext.fetch(descriptor)) ?? []
-            
-            if let profile = profiles.first(where: { $0.username.lowercased() == username.lowercased() && $0.password == password }) {
-                authManager.signIn(as: profile.role, profileID: profile.id)
-                dismiss()
-                isLoading = false
-                return
-            }
-            
             do {
                 let success = try await AuthManager.shared.login(username: username, password: password)
                 if success {
                     show2FA = true
                 } else {
-                    errorMessage = "Неверные учетные данные"
+                    errorMessage = preferences.text("Неверные учетные данные", "Invalid credentials")
                 }
             } catch {
-                errorMessage = "Ошибка сети: \(error.localizedDescription)"
+                errorMessage = preferences.text("Ошибка сети", "Network error") + ": \(error.localizedDescription)"
             }
             isLoading = false
         }
@@ -181,15 +181,14 @@ struct LoginView: View {
     
     private func authenticateWithBiometrics() {
         let context = LAContext()
-        let reason = "Войдите с помощью биометрии"
+        let reason = preferences.text("Войдите с помощью биометрии", "Sign in with biometrics")
         
         context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, error in
             DispatchQueue.main.async {
                 if success {
                     authManager.authenticateWithBiometrics()
-                    dismiss()
                 } else {
-                    errorMessage = error?.localizedDescription ?? "Биометрия не удалась"
+                    errorMessage = error?.localizedDescription ?? preferences.text("Биометрия не удалась", "Biometric authentication failed")
                 }
             }
         }
@@ -200,4 +199,5 @@ struct LoginView: View {
     NavigationStack {
         LoginView()
     }
+    .environmentObject(AppPreferencesManager.shared)
 }
